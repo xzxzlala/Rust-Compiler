@@ -1,0 +1,3 @@
+let k = 5.5;
+let l = 5.5;
+print(k >=. l);

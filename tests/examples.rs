@@ -144,4 +144,13 @@ mod old_tests {
     mk_test!(test43, "old/test43.egg", "8");
     mk_test!(test44, "old/test44.egg", "36");
     mk_test!(test45, "old/test45.egg", "true");
+
+    mk_test!(test46, "test0.float", "4.0");
+    mk_test!(test47, "test1.float", "10.0");
+    mk_test!(test48, "test2.float", "true");
+    mk_test!(test49, "test3.float", "true");
+    mk_test!(test50, "test4.float", "true");
+    mk_test!(test51, "test5.float", "true");
+    mk_test!(test52, "test6.float", "true");
+    mk_test!(test53, "test7.float", "true");
 }
