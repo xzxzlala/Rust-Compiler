@@ -1,0 +1,4 @@
+def fac(x): if x == 0: 1 else: x * fac(x - 1) in 
+let f = fac in f(5)
+
+

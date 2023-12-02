@@ -1,0 +1,11 @@
+def even(n): 
+if n > 0: odd(n + 1, n - 1, n - 2, n + 2) 
+else: odd(n - 1, n + 1, n - 2, n + 2) 
+and 
+def odd(m,n,o,p): 
+    if n == 0: false 
+    else: 
+        if n > 0: even(n - 1) 
+        else: even(n + 1) 
+in 
+even(9)

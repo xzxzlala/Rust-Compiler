@@ -1,0 +1,10 @@
+def f(a,b):
+    def g():
+        b + h()
+    and
+    def h():
+        a
+    in
+    g()
+in
+f(0,1)

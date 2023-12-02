@@ -1,0 +1,8 @@
+let f =  lambda: 1 end in
+let g =  lambda: 1 end in
+let h =  lambda: 1 end in
+def pack(a,b,c): a() + b() + c()
+in
+def unpack(a,b,c) : pack(f, g, h)
+in 
+unpack(1, 2, 3)

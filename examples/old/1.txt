@@ -1,0 +1,17 @@
+[
+    FunDecl { 
+        name: "fac0", p
+        arameters: ["x0"], 
+        body: If { 
+            cond: Prim(Eq, [Var("x0", ()), Num(0, ())], ()), 
+            thn: Num(1, ()), 
+            els: Prim(Mul, [Var("x0", ()), ExternalCall { fun: Label("fac0"), args: [Prim(Sub, [Var("x0", ()), Num(1, ())], ())], is_tail: false, ann: () }], ()), ann: () }, ann: () }]
+ast: Let { 
+    bindings: [("f0", FunDefs { decls: [], body: Var("fac0", ()), ann: () })], 
+    
+    body: Let { bindings: [("untagged", Prim(CheckArityAndUntag(1), [Var("f0", ())], ())), 
+    ("code_ptr", Prim(GetCode, [Var("untagged", ()), Num(0, ())], ())), 
+    ("env", Prim(GetEnv, [Var("untagged", ()), Num(1, ())], ()))], 
+    
+    body: ExternalCall { fun: Var("code_ptr"), args: [Var("env", ()), Num(5, ())], is_tail: true, ann: () }, ann: () }, ann: () }
+

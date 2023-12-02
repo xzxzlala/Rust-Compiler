@@ -1,0 +1,5 @@
+def max(x, y):
+  x + y
+in
+let z = max(40, 40) in
+z
