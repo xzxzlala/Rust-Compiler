@@ -1,2 +1,2 @@
-let q = 9.9;
-print(isfloat(q));
+let q = 9.9 in
+isfloat(q)

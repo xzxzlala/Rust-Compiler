@@ -94,7 +94,17 @@ fn test_example_fail(f: &str, includes: &str) -> std::io::Result<()> {
 }
 mod float_tests{
     use super::*;
-    mk_test!(test1, "old/test1.adder", "1");
+    mk_test!(test0, "test0.float", "4.0");
+    mk_test!(test1, "test1.float", "10.0");
+    mk_test!(test2, "test2.float", "true");
+    mk_test!(test3, "test3.float", "true");
+    mk_test!(test4, "test4.float", "true");
+    mk_test!(test5, "test5.float", "true");
+    mk_test!(test6, "test6.float", "true");
+    mk_test!(test7, "test7.float", "114");
+    mk_test!(test8, "test8.float", "true");
+    
+    mk_test!(test9, "test9.float", "true");
     
 }
 mod old_tests {
@@ -144,13 +154,4 @@ mod old_tests {
     mk_test!(test43, "old/test43.egg", "8");
     mk_test!(test44, "old/test44.egg", "36");
     mk_test!(test45, "old/test45.egg", "true");
-
-    mk_test!(test46, "test0.float", "4.0");
-    mk_test!(test47, "test1.float", "10.0");
-    mk_test!(test48, "test2.float", "true");
-    mk_test!(test49, "test3.float", "true");
-    mk_test!(test50, "test4.float", "true");
-    mk_test!(test51, "test5.float", "true");
-    mk_test!(test52, "test6.float", "true");
-    mk_test!(test53, "test7.float", "true");
 }

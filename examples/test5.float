@@ -1,3 +1,3 @@
-let m = 3.3;
-let n = 4.4;
-print(m <=. n);
+let m = 3.3 in
+let n = 4.4 in
+m <=. n
