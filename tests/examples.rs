@@ -92,6 +92,7 @@ fn test_example_fail(f: &str, includes: &str) -> std::io::Result<()> {
     }
     Ok(())
 }
+/* flaot tests */ 
 mod float_tests{
     use super::*;
     mk_test!(test0, "test0.float", "4.0");
