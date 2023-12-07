@@ -478,7 +478,8 @@ where
         }
         Prim::GetCode | Prim::GetEnv | Prim::CheckArityAndUntag(..) => {
             unreachable!()
-        }
+        },
+        _ => panic!("Not implemented yet!"),
     }
 }
 
@@ -715,7 +716,8 @@ where
                 | Exp::InternalTailCall(..)
                 | Exp::ExternalCall { .. } => {
                     panic!("Shouldn't happen: Interpreter encountered internal form")
-                }
+                },
+                _ => panic!("Not implemented yet!"),
             },
             Machine::Returning { v, stk } => match stk {
                 Stack::Done => {
