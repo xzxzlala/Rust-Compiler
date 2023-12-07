@@ -18,6 +18,19 @@ pub enum Reg {
     R15,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FpuReg {
+    ST0,
+    ST1,
+    ST2,
+    ST3,
+    ST4,
+    ST5,
+    ST6,
+    ST7,
+}
+
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MemRef {
     pub reg: Reg,
@@ -41,6 +54,7 @@ pub enum Arg64 {
     Unsigned(u64),
     Mem(MemRef),
     Label(String),
+    FpuReg(FpuReg),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +63,7 @@ pub enum Arg32 {
     Signed(i32),
     Unsigned(u32),
     Mem(MemRef),
+    FpuReg(FpuReg),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,6 +89,46 @@ pub enum BinArgs {
 pub enum JmpArg {
     Label(String),
     Reg(Reg),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FpuInstr {
+    /// Faddp - Adds the floating-point value in ST(0) to the value in the specified register,
+    /// stores the result in ST(0), and then pops the register stack.
+    /// 
+    /// Usage: Faddp(Arg32::FpuReg(FpuReg::ST1)) performs ST(0) = ST(0) + ST(1) and pops the FPU stack.
+    Faddp(Arg32),
+
+    /// Fsubp - Subtracts the floating-point value in the specified register from the value in ST(0),
+    /// stores the result in ST(0), and then pops the register stack.
+    /// 
+    /// Usage: Fsubp(Arg32::FpuReg(FpuReg::ST1)) performs ST(0) = ST(0) - ST(1) and pops the FPU stack.
+    Fsubp(Arg32),
+
+    /// Fmulp - Multiplies the floating-point value in ST(0) with the value in the specified register,
+    /// stores the result in ST(0), and then pops the register stack.
+    /// 
+    /// Usage: Fmulp(Arg32::FpuReg(FpuReg::ST1)) performs ST(0) = ST(0) * ST(1) and pops the FPU stack.
+    Fmulp(Arg32),
+
+    /// Fld - Loads a floating-point value from the specified memory location or register
+    /// onto the top of the FPU stack (ST(0)).
+    /// 
+    /// Usage: Fld(Arg32::Mem(mem_ref)) loads a float from memory push it onto the FPU stack.
+    Fld(Arg32),
+    
+    /// Fstp - Copies the floating-point value in ST(0) to the specified memory location or register.
+    /// Pops the register stack after the copy is made.
+    /// 
+    /// Usage: Fstp(Arg32::Mem(mem_ref)) stores the float from ST(0) into memory and pops the FPU stack.
+    /// Usage: Fstp(Arg32::FpuReg(FpuReg::ST1)) stores the float from ST(0) into ST(1) and pops the FPU stack.
+    Fstp(Arg32),
+
+    /// Fcomip - Compares the floating-point value in ST(0) with the value in the specified register.
+    /// Sets the CPU flags based on the result and then pops the FPU stack.
+    /// 
+    /// Usage: Fcomip(Arg32::FpuReg(FpuReg::ST1)) compares ST(0) with ST(1), sets flags, and pops register stack.
+    Fcomip(Arg32),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -114,6 +169,8 @@ pub enum Instr {
     Jnz(JmpArg),
     Jo(JmpArg),
     Jno(JmpArg),
+
+    Fpu(FpuInstr),
 }
 
 pub fn reg_to_string(r: Reg) -> String {
@@ -167,12 +224,26 @@ fn reg32_to_string(r_or_i: Reg32) -> String {
     }
 }
 
+fn fpu_reg_to_string(fpu_reg: FpuReg) -> String {
+    match fpu_reg {
+        FpuReg::ST0 => String::from("st(0)"),
+        FpuReg::ST1 => String::from("st(1)"),
+        FpuReg::ST2 => String::from("st(2)"),
+        FpuReg::ST3 => String::from("st(3)"),
+        FpuReg::ST4 => String::from("st(4)"),
+        FpuReg::ST5 => String::from("st(5)"),
+        FpuReg::ST6 => String::from("st(6)"),
+        FpuReg::ST7 => String::from("st(7)"),
+    }
+}
+
 fn arg32_to_string(arg: Arg32) -> String {
     match arg {
         Arg32::Reg(r) => reg_to_string(r),
         Arg32::Signed(i) => imm32_to_string(i),
         Arg32::Unsigned(u) => format!("0x{:08x}", u),
         Arg32::Mem(m) => mem_ref_to_string(m),
+        Arg32::FpuReg(fpu_reg) => fpu_reg_to_string(fpu_reg),
     }
 }
 
@@ -183,6 +254,7 @@ fn arg64_to_string(arg: &Arg64) -> String {
         Arg64::Unsigned(u) => format!("0x{:016x}", u),
         Arg64::Mem(m) => mem_ref_to_string(*m),
         Arg64::Label(l) => l.clone(),
+        Arg64::FpuReg(fpu_reg) => fpu_reg_to_string(*fpu_reg),
     }
 }
 
@@ -306,6 +378,28 @@ fn instr_to_string(i: &Instr) -> String {
         }
         Instr::Jno(s) => {
             format!("        jno {}", jmp_arg_to_string(s))
+        }
+        Instr::Fpu(fpu_instr) => {
+            match fpu_instr {
+                FpuInstr::Faddp(arg) => {
+                    format!("        faddp {}", arg32_to_string(*arg))
+                }
+                FpuInstr::Fsubp(arg) => {
+                    format!("        fsubp {}", arg32_to_string(*arg))
+                }
+                FpuInstr::Fmulp(arg) => {
+                    format!("        fmulp {}", arg32_to_string(*arg))
+                }
+                FpuInstr::Fld(arg) => {
+                    format!("        fld {}", arg32_to_string(*arg))
+                }
+                FpuInstr::Fstp(arg) => {
+                    format!("        fstp {}", arg32_to_string(*arg))
+                }
+                FpuInstr::Fcomip(arg) => {
+                    format!("        fcomip {}", arg32_to_string(*arg))
+                }
+            }
         }
     }
 }
