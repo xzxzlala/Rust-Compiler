@@ -79,7 +79,13 @@ fn sprint_snake_val(x: SnakeVal) -> String {
         }
         s.push(']');
         s
-} else {
+    } else if (x.0 & TAG_MASK == 1) && (x.0 & 0x02 == 0) { // it's a float
+        println!("x.0 is {}", x.0);
+        let f:f32 = (x.0 >> 32) as f32;
+        println!("f is {}", f);
+        format!("{}", f)
+    }
+    else{
         format!("Invalid snake value 0x{:x}", x.0)
     }
 }

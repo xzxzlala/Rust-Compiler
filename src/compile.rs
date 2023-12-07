@@ -780,6 +780,7 @@ fn recur_helper(p: &Exp<bool>, should_lift: HashSet<String>) -> Exp<bool>
 {
     match p {
         Exp::Bool(b, ann) => Exp::Bool(*b, ann.clone()),
+        Exp::Float(f, ann) => Exp::Float(*f, ann.clone()),
         Exp::Num(n, ann) => Exp::Num(*n, ann.clone()),
         Exp::Var(name, ann) => Exp::Var(name.clone(), ann.clone()),
         Exp::Prim(p, args, ann) => {
@@ -893,7 +894,7 @@ fn recur_helper(p: &Exp<bool>, should_lift: HashSet<String>) -> Exp<bool>
             let new_body = recur_helper(body, should_lift.clone());
             Exp::Lambda { parameters: parameters.clone(), body: Box::new(new_body), ann: ann.clone() }
         }
-        _ => {
+        Exp::ExternalCall { .. } | Exp::Semicolon { .. } | Exp::MakeClosure { .. } | Exp::Call(..) | Exp::InternalTailCall(..)=> {
             panic!("internal exp recur")
         }
     }
@@ -952,6 +953,7 @@ where Ann: Clone
     match p {
         Exp::Bool(b, ann) => Exp::Bool(*b, ann.clone()),
         Exp::Num(n, ann) => Exp::Num(*n, ann.clone()),
+        Exp::Float(f, ann) => Exp::Float(*f, ann.clone()),
         Exp::Var(name, ann) => Exp::Var(name.clone(), ann.clone()),
         Exp::Prim(p, args, ann) => {
             let mut new_args = vec![];
@@ -998,7 +1000,7 @@ where Ann: Clone
         Exp::Semicolon { e1, e2, ann } => {
             Exp::Let { bindings: vec![("()".to_string(),desugar_semicolon(e1))], body: Box::new(desugar_semicolon(e2)), ann: ann.clone() }
         }
-        _ => {
+        Exp::InternalTailCall(..) | Exp::ExternalCall{..} | Exp::ClosureCall(..) | Exp::DirectCall(..) | Exp::MakeClosure { .. } => {
             panic!("internel exp found in desugar_semicolon")
         }
     }
@@ -1013,7 +1015,7 @@ where
     println!("tagged_exp: {:?}", tagged_exp);
     let well_scoped_with_unique_names = uniquify(&tagged_exp);
     let elimin_exp = eliminate_closures(&well_scoped_with_unique_names);
-    //println!("well_scoped_with_unique_names:{:?}", well_scoped_with_unique_names);
+    println!("well_scoped_with_unique_names:{:?}", well_scoped_with_unique_names);
     //println!("elimin_exp: {:?}", elimin_exp);
     let (lifted_funs, ast) = lambda_lift(&elimin_exp);
     for fun in lifted_funs.clone() {

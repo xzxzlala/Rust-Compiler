@@ -112,6 +112,7 @@ ArrExp: Exp<Span1> = {
 BaseExp: Exp<Span1> = {
     <l: @L> <x: Id> <r: @R> => Exp::Var(x, Span1 { start_ix: l, end_ix: r }),
     <l: @L> <b: Bool> <r: @R> => Exp::Bool(b, Span1 { start_ix: l, end_ix: r }),
+    <l: @L> <f: Float> <r: @R> => Exp::Float(f, Span1 { start_ix: l, end_ix: r }),
     <l: @L> <n: Num> <r:@R> => Exp::Num(n, Span1 { start_ix: l, end_ix: r }),
     <l:@L> <p:Prim1> "(" <e: Exp> ")" <r:@R> =>
            Exp::Prim(p, vec![Box::new(e)], Span1 { start_ix: l, end_ix: r }),
@@ -162,6 +163,7 @@ Bindings: Vec<(String, Exp<Span1>)> = {
 
 BindExp: String = Id;
 
+Float: u32 = <s:r"[+-]?[0-9]*\.[0-9]+"> => f32::from_str(s).unwrap().to_bits();
 Num: i64 = <s:r"[+-]?[0-9]+"> => i64::from_str(s).unwrap();
 Id: String = <s:r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(s);
 Bool: bool = {
@@ -169,4 +171,3 @@ Bool: bool = {
     "false" => false,
 }
 
-Float: u32 = <s:r"[+-]?[0-9]*\.[0-9]+"> => f32::from_str(s).unwrap().to_bits();

@@ -16,6 +16,7 @@ pub enum Reg {
     R13,
     R14,
     R15,
+    Xmm0,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -79,6 +80,9 @@ pub enum JmpArg {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Instr {
     Mov(MovArgs),
+    Movss(MovArgs),
+    Movd(MovArgs),
+    Movsxd(MovArgs),
     RelativeLoadAddress(Reg, String),
 
     Add(BinArgs),
@@ -92,7 +96,12 @@ pub enum Instr {
     Shl(BinArgs),
     Cmp(BinArgs),
     Test(BinArgs),
+    Cvtsi2ss(BinArgs),
+    Cvttss2si(BinArgs),
 
+    Fld(Arg32),
+    Fild(Arg32),
+    Fstp(Arg32),
     Push(Arg32),
     Pop(Arg32),
 
@@ -134,6 +143,7 @@ pub fn reg_to_string(r: Reg) -> String {
         Reg::R13 => String::from("r13"),
         Reg::R14 => String::from("r14"),
         Reg::R15 => String::from("r15"),
+        Reg::Xmm0 => String::from("xmm0"),
     }
 }
 
@@ -217,6 +227,30 @@ fn jmp_arg_to_string(arg: &JmpArg) -> String {
 
 fn instr_to_string(i: &Instr) -> String {
     match i {
+        Instr::Movsxd(args) => {
+            format!("        movsxd {}", mov_args_to_string(args))
+        }
+        Instr::Movd(args) => {
+            format!("        movd {}", mov_args_to_string(args))
+        }
+        Instr::Cvttss2si(args) => {
+            format!("        cvttss2si {}", bin_args_to_string(*args))
+        }
+        Instr::Cvtsi2ss(args) => {
+            format!("        cvtsi2ss {}", bin_args_to_string(*args))
+        }
+        Instr::Movss(args) => {
+            format!("        movss {}", mov_args_to_string(args))
+        }
+        Instr::Fld(arg) => {
+            format!("        fld dword [{}]", arg32_to_string(*arg))
+        }
+        Instr::Fild(arg) => {
+            format!("        fild dword [{}]", arg32_to_string(*arg))
+        }
+        Instr::Fstp(arg) => {
+            format!("        fstp dword [{}]", arg32_to_string(*arg))
+        }
         Instr::RelativeLoadAddress(reg, label) => {
             format!("        lea {}, [rel {}]", reg_to_string(*reg), label)
         }

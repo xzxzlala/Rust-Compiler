@@ -1,6 +1,6 @@
 def fadd_times(p, q): (p +. q) *. (p +. q) in
-let a = 1.2 and p = 1.3 in
+let a = 1.2 , p = 1.3 in
 if 6.249 <= fadd_times(a, p) :
 if 6.251 >= fadd_times(a, p) : true
 else: false
-false
+else: false

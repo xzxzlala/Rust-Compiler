@@ -303,6 +303,9 @@ where Span: Clone // this means you can use the clone method on Span (which you 
             Ok(())
         }
         }
+        Exp::Float(_, _) => {
+            Ok(())
+        }
         Exp::Bool(..) => Ok(()),
         Exp::Var(name, span) => {
             if env_get::<Span>(&env, name).is_none() {
@@ -380,7 +383,7 @@ where Span: Clone // this means you can use the clone method on Span (which you 
         Exp::Semicolon { .. } => {
             panic!("found semicolon");
         }
-        _ => {
+        Exp::InternalTailCall(..) | Exp::ExternalCall{..} | Exp::ClosureCall(..) | Exp::DirectCall(..) | Exp::MakeClosure { .. } => {
             panic!("internel exp found in desugar_semicolon")
         }
 }
@@ -861,11 +864,26 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                         Arg64::Unsigned(SNAKE_FLS)
                     }
                     ImmExp::Float(f) => {
-                        panic!("float not implemented");
                         //fild f [r15]
                         //r15++
                         //mov rax, [r15-8]
                         //rax += 5
+                        println!("f: {}", f);
+                        let f_f32: f32 = unsafe { std::mem::transmute(*f)};
+                        println!("f_f32: {}", f_f32);
+                        is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
+                        , Reg32::Unsigned(*f))));
+                        is.push(Instr::Fld(Arg32::Reg(Reg::R15)));
+                        is.push(Instr::Fstp(Arg32::Reg(Reg::R15)));
+                        is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                        //is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Unsigned(f_64))));
+                        //is.push(Instr::Cvtsi2ss(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Rax))));
+                        //is.push(Instr::Movd(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::Xmm0))));
+                        //is.push(Instr::Cvttss2si(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::Xmm0))));
+                        //is.push(Instr::Movsxd(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::Rax))));
+                        is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
+                        is.push(Instr::Add(BinArgs::ToReg(Reg::Rax, Arg32::Signed(5))));
+                        Arg64::Reg(Reg::Rax)
                     }
                     ImmExp::Var(name) => {
                         let offset = match env_get::<u32>(env, name) {
@@ -1374,7 +1392,6 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
         SeqExp::Semicolon { .. } => {
             panic!("compile semicolon")
         },
-        _ => panic!("compile_to_instrs_helper: {:?}", e)
     }
     is
 }
