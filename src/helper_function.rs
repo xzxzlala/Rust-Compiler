@@ -2,6 +2,7 @@
 use crate::asm::{Arg32, Arg64, BinArgs, Instr, MemRef, MovArgs, Reg, Reg32, Offset, JmpArg};
 use crate::syntax::{Exp, ImmExp, Prim, SeqExp, FunDecl, SeqProg, VarOrLabel};
 use crate::compile::CompileErr;
+use core::panic;
 use std::convert::TryFrom;
 use std::vec;
 
@@ -17,6 +18,7 @@ fn tag_exp_helper<T>(e:&Exp<T>, num:&mut u32) -> Exp<u32> {
     match e {
         Exp::Num(n, _) => Exp::Num(*n, *num),
         Exp::Var(name, _) => Exp::Var(name.clone(), *num),
+        Exp::Float(f, _) => Exp::Float(*f, *num),
         Exp::Bool(bool, _) => Exp::Bool(bool.clone(), *num),
         Exp::Prim(pr, exp_lst, _) => {
             let tag = *num;
@@ -239,6 +241,7 @@ impl<Ann> Exp<Ann> {
     {
         match self {
             Exp::Num(_, a) => a.clone(),
+            Exp::Float(_, a) => a.clone(),
             Exp::Var(_, a) => a.clone(),
             Exp::Prim(_, _, a) => a.clone(),
             Exp::Let { ann: a, .. } => a.clone(),
@@ -385,17 +388,19 @@ where Span: Clone // this means you can use the clone method on Span (which you 
 pub fn sequentialize(e: &Exp<u32>, funs: &mut Vec<(String, Vec<String>)>) -> SeqExp<()> {
     match e {
         Exp::Num(n, _) => SeqExp::Imm(ImmExp::Num(*n), ()),
+        Exp::Float(f, _) => SeqExp::Imm(ImmExp::Float(*f), ()),
         Exp::Bool(b, _) => SeqExp::Imm(ImmExp::Bool(*b), ()),
         Exp::Var(name, _) => SeqExp::Imm(ImmExp::Var(name.clone()), ()),
         Exp::Prim(op, exp_lst, ann) => {
             match op {
-                | Prim::GetCode | Prim::GetEnv | Prim::CheckArityAndUntag(_) | Prim::Add1 | Prim::Sub1 | Prim::Not| Prim::Print | Prim::IsBool | Prim::IsNum | Prim::IsArray | Prim::IsFun | Prim::Length=>{
+                Prim::GetCode | Prim::GetEnv | Prim::CheckArityAndUntag(_) | Prim::Add1 | Prim::Sub1 | Prim::Not| Prim::Print | Prim::IsBool | Prim::IsNum | Prim::IsArray | Prim::IsFun | Prim::IsFloat | Prim::Length=>{
                     let s_e1 = sequentialize(exp_lst.get(0).unwrap(), funs);
                     let name1 = format!("#prim1_{}", ann);
                     SeqExp::Let { var: name1.clone(), bound_exp: Box::new(s_e1), ann: (),
                         body: Box::new(SeqExp::Prim(*op, vec![ImmExp::Var(name1)], ()))
                     }
                 }
+                Prim::FAdd | Prim::FGe | Prim::FGt | Prim::FLe | Prim::FLt | Prim::FSub | Prim::FMul |
                 Prim::ArrayGet| Prim::Add | Prim::And | Prim::Eq | Prim::Ge | Prim::Gt | Prim::Le | Prim::Lt | Prim::Mul | Prim::Neq | Prim::Or | Prim::Sub =>{
                     let s_e1 = sequentialize(exp_lst.get(0).unwrap(), funs);
                     let s_e2 = sequentialize(exp_lst.get(1).unwrap(), funs);
@@ -738,111 +743,111 @@ fn rax_flip()->Vec<Instr>{
     is
 
 }
-fn print_imm_exp(e: &ImmExp<>) -> () {
-    match e {
-        ImmExp::Num(n) => print!("{}", n),
-        ImmExp::Bool(b) => print!("{}", b),
-        ImmExp::Var(name) => print!("{}", name),
-    }
-}
-fn op_to_string (op: &Prim) -> String {
-    match op {
-        Prim::Add1 => "+1".to_owned(),
-        Prim::Sub1 => "-1".to_owned(),
-        Prim::Add => "+".to_owned(),
-        Prim::Sub => "-".to_owned(),
-        Prim::Mul => "*".to_owned(),
-        Prim::And => "and".to_owned(),
-        Prim::Or => "or".to_owned(),
-        Prim::Not => "not".to_owned(),
-        Prim::Gt => ">".to_owned(),
-        Prim::Lt => "<".to_owned(),
-        Prim::Ge => ">=".to_owned(),
-        Prim::Le => "<=".to_owned(),
-        Prim::Eq => "==".to_owned(),
-        Prim::Neq => "!=".to_owned(),
-        Prim::IsNum => "number?".to_owned(),
-        Prim::IsBool => "boolean?".to_owned(),
-        Prim::Print => "print".to_owned(),
-        Prim::IsFun => "function?".to_owned(),
-        Prim::IsArray => "array?".to_owned(),
-        Prim::ArrayGet => "array-get".to_owned(),
-        Prim::ArraySet => "array-set".to_owned(),
-        Prim::Length => "length".to_owned(),
-        Prim::GetCode => "get-code".to_owned(),
-        Prim::GetEnv => "get-env".to_owned(),
-        Prim::CheckArityAndUntag(_) => "check-arity-and-untag".to_owned(),
-        Prim::MakeArray => "make-array".to_owned(),
-    }
-}
-pub fn print_seq_exp<Ann>(e: &SeqExp<Ann>) -> () {
-    match e {
-        SeqExp::Imm(imm_exp, _) => print_imm_exp(imm_exp),
-        SeqExp::Prim(op, exp, _) =>{
-            print!("({}", op_to_string(op));
-            for e in exp{
-                print!(" ");
-                print_imm_exp(e);
-            }
-            print!(")");
-        }
-        SeqExp::Let {var, bound_exp, body, ..} => {
-            print!("(let ([{} ", var);
-            print_seq_exp(bound_exp);
-            print!("]) in \n");
-            print_seq_exp(body);
-            print!(")");
-        }
-        SeqExp::If {cond, thn, els, ..} =>{
-            print!("(if ");
-            print_imm_exp(cond);
-            print!(" ");
-            print_seq_exp(thn);
-            print!(" ");
-            print_seq_exp(els);
-            print!(")");
-        }
-        SeqExp::FunDefs { decls, body, .. } => {
-            print!("(letrec (");
-            for decl in decls{
-                print!("({} (", decl.name);
-                for arg in &decl.parameters{
-                    print!("{} ", arg);
-                }
-                print!(") -> ");
-                print_seq_exp(&decl.body);
-                print!(") ");
-            }
-            print!(") in \n");
-            print_seq_exp(body);
-            print!(")");
-        }
-        SeqExp::ExternalCall { fun, args, .. } => {
-            print!("(external-call {:?} ", fun);
-            for arg in args{
-                print_imm_exp(arg);
-                print!(" ");
-            }
-            print!(")");
-        }
-        SeqExp::InternalTailCall(name, args, ..) => {
-            print!("(tail-call {} ", name);
-            for arg in args{
-                print_imm_exp(arg);
-                print!(" ");
-            }
-            print!(")");
-        }
-        SeqExp::MakeClosure { arity, label, env, .. } => {
-            print!("(make-closure {} {} {:?}", arity, label, print_imm_exp(env));
-        }
-        SeqExp::Semicolon { e1, e2, .. } => {
-            print_seq_exp(e1);
-            print!(";\n");
-            print_seq_exp(e2);
-        }
-    }
-}
+// fn print_imm_exp(e: &ImmExp<>) -> () {
+//     match e {
+//         ImmExp::Num(n) => print!("{}", n),
+//         ImmExp::Bool(b) => print!("{}", b),
+//         ImmExp::Var(name) => print!("{}", name),
+//     }
+// }
+// fn op_to_string (op: &Prim) -> String {
+//     match op {
+//         Prim::Add1 => "+1".to_owned(),
+//         Prim::Sub1 => "-1".to_owned(),
+//         Prim::Add => "+".to_owned(),
+//         Prim::Sub => "-".to_owned(),
+//         Prim::Mul => "*".to_owned(),
+//         Prim::And => "and".to_owned(),
+//         Prim::Or => "or".to_owned(),
+//         Prim::Not => "not".to_owned(),
+//         Prim::Gt => ">".to_owned(),
+//         Prim::Lt => "<".to_owned(),
+//         Prim::Ge => ">=".to_owned(),
+//         Prim::Le => "<=".to_owned(),
+//         Prim::Eq => "==".to_owned(),
+//         Prim::Neq => "!=".to_owned(),
+//         Prim::IsNum => "number?".to_owned(),
+//         Prim::IsBool => "boolean?".to_owned(),
+//         Prim::Print => "print".to_owned(),
+//         Prim::IsFun => "function?".to_owned(),
+//         Prim::IsArray => "array?".to_owned(),
+//         Prim::ArrayGet => "array-get".to_owned(),
+//         Prim::ArraySet => "array-set".to_owned(),
+//         Prim::Length => "length".to_owned(),
+//         Prim::GetCode => "get-code".to_owned(),
+//         Prim::GetEnv => "get-env".to_owned(),
+//         Prim::CheckArityAndUntag(_) => "check-arity-and-untag".to_owned(),
+//         Prim::MakeArray => "make-array".to_owned(),
+//     }
+// }
+// pub fn print_seq_exp<Ann>(e: &SeqExp<Ann>) -> () {
+//     match e {
+//         SeqExp::Imm(imm_exp, _) => print_imm_exp(imm_exp),
+//         SeqExp::Prim(op, exp, _) =>{
+//             print!("({}", op_to_string(op));
+//             for e in exp{
+//                 print!(" ");
+//                 print_imm_exp(e);
+//             }
+//             print!(")");
+//         }
+//         SeqExp::Let {var, bound_exp, body, ..} => {
+//             print!("(let ([{} ", var);
+//             print_seq_exp(bound_exp);
+//             print!("]) in \n");
+//             print_seq_exp(body);
+//             print!(")");
+//         }
+//         SeqExp::If {cond, thn, els, ..} =>{
+//             print!("(if ");
+//             print_imm_exp(cond);
+//             print!(" ");
+//             print_seq_exp(thn);
+//             print!(" ");
+//             print_seq_exp(els);
+//             print!(")");
+//         }
+//         SeqExp::FunDefs { decls, body, .. } => {
+//             print!("(letrec (");
+//             for decl in decls{
+//                 print!("({} (", decl.name);
+//                 for arg in &decl.parameters{
+//                     print!("{} ", arg);
+//                 }
+//                 print!(") -> ");
+//                 print_seq_exp(&decl.body);
+//                 print!(") ");
+//             }
+//             print!(") in \n");
+//             print_seq_exp(body);
+//             print!(")");
+//         }
+//         SeqExp::ExternalCall { fun, args, .. } => {
+//             print!("(external-call {:?} ", fun);
+//             for arg in args{
+//                 print_imm_exp(arg);
+//                 print!(" ");
+//             }
+//             print!(")");
+//         }
+//         SeqExp::InternalTailCall(name, args, ..) => {
+//             print!("(tail-call {} ", name);
+//             for arg in args{
+//                 print_imm_exp(arg);
+//                 print!(" ");
+//             }
+//             print!(")");
+//         }
+//         SeqExp::MakeClosure { arity, label, env, .. } => {
+//             print!("(make-closure {} {} {:?}", arity, label, print_imm_exp(env));
+//         }
+//         SeqExp::Semicolon { e1, e2, .. } => {
+//             print_seq_exp(e1);
+//             print!(";\n");
+//             print_seq_exp(e2);
+//         }
+//     }
+// }
 fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_def: bool, last: &mut Vec<Instr>) -> Vec<Instr>{
     let mut is = vec![];
     match e {
@@ -854,6 +859,13 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                         Arg64::Unsigned(SNAKE_TRU)
                     }else{
                         Arg64::Unsigned(SNAKE_FLS)
+                    }
+                    ImmExp::Float(f) => {
+                        panic!("float not implemented");
+                        //fild f [r15]
+                        //r15++
+                        //mov rax, [r15-8]
+                        //rax += 5
                     }
                     ImmExp::Var(name) => {
                         let offset = match env_get::<u32>(env, name) {
@@ -904,7 +916,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                                     }
                                 };
                                 Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
-                            }
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
                         }
                     };
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
@@ -950,7 +963,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                                     }
                                 };
                                 Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
-                            }
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
                         }
                     };
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
@@ -980,7 +994,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                                     }
                                 };
                                 Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
-                            }
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
                         }
                     };
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
@@ -1132,7 +1147,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                                     }
                                 };
                                 Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
-                            }
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
                         }
                     };
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
@@ -1234,7 +1250,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Sub(BinArgs::ToReg(Reg::Rax, Arg32::Signed(3))));
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef{reg:Reg::Rax, 
                         offset:Offset::Constant(16)}))));
-                }
+                },
+                _ => panic!("not implemented")
             }
         },
         SeqExp::Let { var, bound_exp, body, .. } => {
@@ -1356,7 +1373,8 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
         }
         SeqExp::Semicolon { .. } => {
             panic!("compile semicolon")
-        }
+        },
+        _ => panic!("compile_to_instrs_helper: {:?}", e)
     }
     is
 }

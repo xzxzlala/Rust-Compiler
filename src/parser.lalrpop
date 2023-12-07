@@ -70,10 +70,13 @@ Product = LAssoc<Times, NotExp>;
 PlusMinus: Prim = {
     "+" => Prim::Add,
     "-" => Prim::Sub,
+    "+." => Prim::FAdd,
+    "-." => Prim::FSub,
 }
 
 Times: Prim = {
-    "*" => Prim::Mul
+    "*" => Prim::Mul,
+    "*." => Prim::FMul,
 }
 
 Log: Prim = {
@@ -88,6 +91,10 @@ Cmp: Prim = {
     ">=" => Prim::Ge,
     "==" => Prim::Eq,
     "!=" => Prim::Neq,
+    "<." => Prim::FLt,
+    "<=." => Prim::FLe,
+    ">." => Prim::FGt,
+    ">=." => Prim::FGe,
 }
 
 NotExp: Exp<Span1> = {
@@ -138,6 +145,7 @@ Prim1: Prim = {
     "isarray" => Prim::IsArray,
     "length" => Prim::Length,
     "isfun" => Prim::IsFun,
+    "isfloat" => Prim::IsFloat,
 }
 
 Array<T>: Vec<T> = {
@@ -161,3 +169,4 @@ Bool: bool = {
     "false" => false,
 }
 
+Float: u32 = <s:r"[+-]?[0-9]*\.[0-9]+"> => f32::from_str(s).unwrap().to_bits();

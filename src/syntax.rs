@@ -13,6 +13,7 @@ pub struct FunDecl<E, Ann> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Exp<Ann> {
     Num(i64, Ann),
+    Float(u32,Ann),
     Bool(bool, Ann),
     Var(String, Ann),
     Prim(Prim, Vec<Box<Exp<Ann>>>, Ann),
@@ -107,6 +108,16 @@ pub enum Prim {
 
     // 0 or more arguments
     MakeArray,
+
+    // floating point
+    FAdd,
+    FSub,
+    FMul,
+    FLt,
+    FGt,
+    FLe,
+    FGe,
+    IsFloat,
 }
 
 /* Sequential Expressions */
@@ -122,6 +133,7 @@ pub type SeqFunDecl<Ann> = FunDecl<SeqExp<Ann>, Ann>;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ImmExp {
     Num(i64),
+    Float(u32),
     Bool(bool),
     Var(String),
 }

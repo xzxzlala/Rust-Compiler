@@ -57,6 +57,7 @@ fn uniquify_helper(e: &Exp<u32>, map: &mut HashMap<String, u32>) -> Exp<()>{
     match e {
         Exp::Num(n ,_)  =>  Exp::Num(*n, ()),
         Exp::Bool(b, _) =>  Exp::Bool(*b, ()),
+        Exp::Float(f, _) => Exp::Float(*f, ()),
         Exp::Var(name, _) => {
             match map.get(name) {
                 Some(n) => Exp::Var(format!("{}{}", name, n), ()),
@@ -132,7 +133,7 @@ fn uniquify_helper(e: &Exp<u32>, map: &mut HashMap<String, u32>) -> Exp<()>{
             Exp::Lambda { parameters: new_para, body: Box::new(uniquify_helper(body, map)), ann: () }
         }
         Exp::Semicolon {..} | Exp::DirectCall(..) | Exp::ClosureCall(..) | Exp::MakeClosure { .. } | 
-        Exp::ExternalCall { .. } | Exp::InternalTailCall(..) => panic!("internal exp uniquify")
+        Exp::ExternalCall { .. } | Exp::InternalTailCall(..) => panic!("internal exp uniquify"),
     }
 }
 fn uniquify(e: &Exp<u32>) -> Exp<()> {
@@ -144,6 +145,7 @@ fn eliminate_closures_helper<Ann>(e: &Exp<Ann>, fun: &mut HashSet<String>) -> Ex
     match e {
         Exp::Bool(b, _) => Exp::Bool(*b, ()),
         Exp::Num(n, _) => Exp::Num(*n, ()),
+        Exp::Float(f, _) => Exp::Float(*f, ()),
         Exp::Var(name, _) => Exp::Var(name.clone(), ()),
         Exp::Prim(p, args, _) => {
             let mut new_args = vec![];
@@ -224,6 +226,7 @@ fn should_lift_helper(p: &Exp<bool>, set: &mut HashSet<String>, inside_lifted_fu
         Exp::Num(_, _) => (),
         Exp::Bool(_, _) => (),
         Exp::Var(_, _) => (),
+        Exp::Float(_, _) => (),
         Exp::Prim(_, args, _) => {
             for arg in args {
                 should_lift_helper(arg, set, inside_lifted_function);
@@ -279,6 +282,7 @@ fn mark_tail<Ann>(p: &Exp<Ann>, is_tail: bool) -> Exp<bool> {
     match p {
         Exp::Num(n, _) => Exp::Num(*n, false),
         Exp::Bool(b, _) => Exp::Bool(*b, false),
+        Exp::Float(f, _) => Exp::Float(*f, false),
         Exp::Var(name, _) => Exp::Var(name.clone(), false),
         Exp::Prim(p, args, _) => {
             let mut new_args = vec![];
@@ -348,6 +352,7 @@ fn body_variables(e: &Exp<bool>, funs : &Vec<(String, Vec<String>)>) -> Vec<Stri
     match e {
         Exp::Num(_, _) => vec![],
         Exp::Bool(_, _) => vec![],
+        Exp::Float(_, _) => vec![],
         Exp::Var(name, _) => vec![name.clone()],
         Exp::Prim(_, args, _) => {
             let mut new_args = vec![];
@@ -476,6 +481,7 @@ fn variable_capture_helper(p: Exp<bool>, funs : &mut Vec<(String, Vec<String>)>)
     match p {
         Exp::Num(n, ann) => Exp::Num(n, ann),
         Exp::Bool(b, ann) => Exp::Bool(b, ann),
+        Exp::Float(f, ann) => Exp::Float(f, ann),
         Exp::Var(name, ann) => Exp::Var(name, ann),
         Exp::Prim(p, args, ann) => {
             let mut new_args = vec![];
@@ -598,6 +604,7 @@ fn lambda_lift_helper(p: &Exp<bool>, should_lift: HashSet<String>, lambda_count:
     match p {
         Exp::Num(n, _) => (vec![], Exp::Num(*n, ())),
         Exp::Bool(b, _) => (vec![], Exp::Bool(*b, ())),
+        Exp::Float(f, _) => (vec![], Exp::Float(*f, ())),
         Exp::Var(name, _) => (vec![], Exp::Var(name.clone(), ())),
         Exp::Prim(p, args, _) => {
             let mut new_args = vec![];
