@@ -107,9 +107,10 @@ mod float_tests{
     mk_test!(test7, "test7.float", "9.9\n114");
     mk_test!(test8, "test8.float", "true");
     mk_test!(test9, "test9.float", "true");
-    mk_test!(test10, "test10.float", "true");
+    mk_fail_test!(test10, "test10.float", "overflow");
+    mk_fail_test!(test11, "test11.float", "overflow"); //not sure
 }
-/* 
+
 mod old_tests {
     use super::*;
     mk_test!(test1, "old/test1.adder", "1");
@@ -158,4 +159,3 @@ mod old_tests {
     mk_test!(test44, "old/test44.egg", "36");
     mk_test!(test45, "old/test45.egg", "true");
 }
-*/
