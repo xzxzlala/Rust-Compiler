@@ -14,7 +14,7 @@ start_here:
         ret
 main:
 ;;; let_def
-        mov rax, 0x000000003f8ccccd
+        mov rax, 0x000000007f800000
         shl rax, 0x00000020
         add rax, 5
         mov rax, rax
@@ -22,52 +22,30 @@ main:
 ;;; let_def_end
 ;;; let_body
 ;;; let_def
-        mov rax, 0x00000000400ccccd
+        mov rax, 0x000000007f800000
         shl rax, 0x00000020
         add rax, 5
         mov rax, rax
         mov QWORD [rsp + -16], rax
 ;;; let_def_end
 ;;; let_body
-;;; let_def
         mov rax, QWORD [rsp + -8]
-        mov QWORD [rsp + -24], rax
-;;; let_def_end
-;;; let_body
-;;; let_def
-        mov rax, QWORD [rsp + -16]
-        mov QWORD [rsp + -32], rax
-;;; let_def_end
-;;; let_body
-        mov rax, QWORD [rsp + -24]
-;;; fgt_flt_fge_fle
-        mov r9, rax
-        xor r9, 0x00000005
-        test r9, 0x00000007
-        jnz error_fcom_not_float
-        sar rax, 0x00000020
+;;; add_sub_mul
+        test rax, 0x00000001
+        jnz error_ari_not_number
         mov r10, rax
-        mov rax, QWORD [rsp + -32]
-        mov r9, rax
-        xor r9, 0x00000005
-        test r9, 0x00000007
-        jnz error_fcom_not_float
-        sar rax, 0x00000020
-        mov QWORD [r15 + 0], rax
-        mov QWORD [r15 + 8], r10
-        movss xmm0, DWORD [r15 + 0]
-        movss xmm1, DWORD [r15 + 8]
-        subps xmm1, xmm0
-        mov xmm0, xmm1
-        movss DWORD [r15 + 0], xmm0
-        mov rax, QWORD [r15 + 0]
-        shl rax, 0x00000020
-        mov r11, 0x8000000000000000
-        and rax, r11
-        mov r11, 0x7fffffffffffffff
-        or rax, r11
-;;; let_body_end
-;;; let_body_end
+        sar r10, 0x00000001
+        mov rax, QWORD [rsp + -16]
+        test rax, 0x00000001
+        jnz error_ari_not_number
+        sar rax, 0x00000001
+        mov r11, rax
+        mov rax, r10
+        mov r10, r11
+        add rax, r10
+        jo error_overflow
+        shl rax, 0x00000001
+        jo error_overflow
 ;;; let_body_end
 ;;; let_body_end
         ret
@@ -123,4 +101,8 @@ error_fari_not_float:
 error_fcom_not_float:
         mov RSI, R10
         mov RDI, 13
+        call snake_error
+error_foverflow:
+        mov RSI, R10
+        mov RDI, 14
         call snake_error

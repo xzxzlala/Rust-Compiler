@@ -114,6 +114,7 @@ pub enum Instr {
     Push(Arg32),
     //Pushf(u32),
     Pop(Arg32),
+    Stmxcsr(Arg32),
 
     Comment(String),
     Label(String),
@@ -244,6 +245,12 @@ fn movss_arg64_to_string(arg: &Arg64) -> String {
         Arg64::Label(l) => l.clone(),
     }
 }
+fn stmxcsr_args_to_string(args: &Arg32) -> String {
+    match args {
+        Arg32::Mem(m) => d_mem_ref_to_string(*m),
+        _ => panic!("stmxcsr takes a memory reference"),
+    }
+}
 fn bin_args_to_string(args: BinArgs) -> String {
     match args {
         BinArgs::ToReg(r, arg) => {
@@ -264,6 +271,9 @@ fn jmp_arg_to_string(arg: &JmpArg) -> String {
 
 fn instr_to_string(i: &Instr) -> String {
     match i {
+        Instr::Stmxcsr(args) => {
+            format!("        stmxcsr {}", stmxcsr_args_to_string(args))
+        }
         Instr::Movaps(args) => {
             format!("        movaps {}", mov_args_to_string(args))
         }

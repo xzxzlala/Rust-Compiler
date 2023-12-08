@@ -1100,6 +1100,10 @@ error_fcom_not_float:
         mov RSI, R10
         mov RDI, 13
         call snake_error
+error_foverflow:
+        mov RSI, R10
+        mov RDI, 14
+        call snake_error
 ",
         instrs_to_string(&is)
     ))

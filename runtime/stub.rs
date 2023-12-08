@@ -20,6 +20,7 @@ static Not_CLOSURE: ErrorCode = 10;
 static ARITY_MISMATCH: ErrorCode = 11;
 static FARI_EXP_FLOAT: ErrorCode = 12;
 static FCOM_EXP_FLOAT: ErrorCode = 13;
+static FLOAT_OVERFLOW: ErrorCode = 14;
 
 #[repr(C)]
 struct SnakeArray {
@@ -134,6 +135,8 @@ extern "sysv64" fn snake_error(err_code: u64, v: SnakeVal) {
         eprintln!("arithmetic expected a float, but got {}", sprint_snake_val(v));
     } else if err_code == FCOM_EXP_FLOAT{
         eprintln!("comparison expected a float, but got {}", sprint_snake_val(v));
+    } else if err_code == FLOAT_OVERFLOW{
+        eprintln!("overflow");
     } else
     {
         eprintln!("unknown error code {}", err_code);

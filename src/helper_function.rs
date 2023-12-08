@@ -13,6 +13,8 @@ static MIN_SNAKE_INT: i64 = i64::min_value() >> 1;
 static BOOL_MASK: u64 = 0x8000_0000_0000_0000;
 static TAG_MASK: u64 = 0x7F_FF_FF_FF_FF_FF_FF_FF;
 static FLIP_MASK: u64 = 0x80_00_00_00_00_00_00_00;
+static MAX_FLOAT: u32 = 0x7F7F_FFFF;
+static MIN_FLOAT: u32 = 0xFF7F_FFFF;
 
 fn tag_exp_helper<T>(e:&Exp<T>, num:&mut u32) -> Exp<u32> {
     match e {
@@ -673,6 +675,14 @@ fn check_ari_float() -> Vec<Instr> {
     is.push(Instr::Jnz(JmpArg::Label(format!("error_fari_not_float"))));
     is
 }
+fn check_overflow_float() -> Vec<Instr> {
+    let mut is = vec![];
+    is.push(Instr::Stmxcsr(Arg32::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) })));
+    is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+    is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(0x8000))));
+    is.push(Instr::Jnz(JmpArg::Label(format!("error_foverflow"))));
+    is
+}
 fn check_com_float() -> Vec<Instr> {
     let mut is = vec![];
     is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
@@ -856,6 +866,7 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm0, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
                     is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm1, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }))));
                     is.append(&mut compile_prim(op));
+                    is.append(&mut check_overflow_float());
                     is.push(Instr::Movss(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }, Reg32::Reg(Reg::Xmm0))));
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
                     is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));

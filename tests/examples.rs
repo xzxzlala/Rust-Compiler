@@ -107,8 +107,9 @@ mod float_tests{
     mk_test!(test7, "test7.float", "9.9\n114");
     mk_test!(test8, "test8.float", "true");
     mk_test!(test9, "test9.float", "true");
-    mk_fail_test!(test10, "test10.float", "overflow");
-    mk_fail_test!(test11, "test11.float", "overflow"); //not sure
+    mk_test!(test10, "test10.float", "inf");
+    mk_test!(test11, "test11.float", "20000000000000000000000000000000000000.0");
+    mk_test!(test12, "test12.float", "inf");
 }
 
 mod old_tests {
