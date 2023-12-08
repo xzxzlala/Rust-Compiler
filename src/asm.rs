@@ -103,6 +103,7 @@ pub enum Instr {
     Fild(Arg32),
     Fstp(Arg32),
     Push(Arg32),
+    Pushf(u32),
     Pop(Arg32),
 
     Comment(String),
@@ -227,6 +228,10 @@ fn jmp_arg_to_string(arg: &JmpArg) -> String {
 
 fn instr_to_string(i: &Instr) -> String {
     match i {
+        Instr::Pushf(arg) => {
+            let f:f32 = unsafe { std::mem::transmute(*arg)};
+            format!("        mov QWORD [r15 + 0], {}", f)
+        }
         Instr::Movsxd(args) => {
             format!("        movsxd {}", mov_args_to_string(args))
         }

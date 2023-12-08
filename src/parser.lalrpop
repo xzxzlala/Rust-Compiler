@@ -68,15 +68,15 @@ Sum = LAssoc<PlusMinus, Product>;
 Product = LAssoc<Times, NotExp>;
 
 PlusMinus: Prim = {
-    "+" => Prim::Add,
-    "-" => Prim::Sub,
     "+." => Prim::FAdd,
     "-." => Prim::FSub,
+    "+" => Prim::Add,
+    "-" => Prim::Sub,
 }
 
 Times: Prim = {
-    "*" => Prim::Mul,
     "*." => Prim::FMul,
+    "*" => Prim::Mul,
 }
 
 Log: Prim = {
@@ -85,16 +85,16 @@ Log: Prim = {
 }
 
 Cmp: Prim = {
+    "<." => Prim::FLt,
+    "<=." => Prim::FLe,
+    ">." => Prim::FGt,
+    ">=." => Prim::FGe,
     "<" => Prim::Lt,
     "<=" => Prim::Le,
     ">" => Prim::Gt,
     ">=" => Prim::Ge,
     "==" => Prim::Eq,
     "!=" => Prim::Neq,
-    "<." => Prim::FLt,
-    "<=." => Prim::FLe,
-    ">." => Prim::FGt,
-    ">=." => Prim::FGe,
 }
 
 NotExp: Exp<Span1> = {
@@ -162,7 +162,6 @@ Bindings: Vec<(String, Exp<Span1>)> = {
 }
 
 BindExp: String = Id;
-
 Float: u32 = <s:r"[+-]?[0-9]*\.[0-9]+"> => f32::from_str(s).unwrap().to_bits();
 Num: i64 = <s:r"[+-]?[0-9]+"> => i64::from_str(s).unwrap();
 Id: String = <s:r"[a-zA-Z][a-zA-Z0-9_]*"> => String::from(s);

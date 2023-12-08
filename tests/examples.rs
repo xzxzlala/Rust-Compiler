@@ -96,6 +96,8 @@ fn test_example_fail(f: &str, includes: &str) -> std::io::Result<()> {
 mod float_tests{
     use super::*;
     mk_test!(test0, "test0.float", "5.5");
+    mk_test!(test0_0, "test0.0.float", "4.0");
+    
     //mk_test!(test1, "test1.float", "10.0");
     //mk_test!(test2, "test2.float", "true");
     //mk_test!(test3, "test3.float", "true");

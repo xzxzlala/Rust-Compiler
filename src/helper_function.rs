@@ -665,6 +665,15 @@ fn check_index_num() -> Vec<Instr> {
     is.push(Instr::Jnz(JmpArg::Label(format!("error_index_not_number"))));
     is
 }
+fn check_ari_float() -> Vec<Instr> {
+    let mut is = vec![];
+    is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
+    is.push(Instr::Xor(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(5))));
+    is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(7))));
+    is.push(Instr::Jnz(JmpArg::Label(format!("error_index_into_nonarray"))));
+    is
+}
+
 fn check_index_into_array() -> Vec<Instr> {
     let mut is = vec![];
     is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
@@ -871,12 +880,12 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                         println!("f: {}", f);
                         let f_f32: f32 = unsafe { std::mem::transmute(*f)};
                         println!("f_f32: {}", f_f32);
-                        is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
-                        , Reg32::Unsigned(*f))));
-                        is.push(Instr::Fld(Arg32::Reg(Reg::R15)));
-                        is.push(Instr::Fstp(Arg32::Reg(Reg::R15)));
-                        is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
-                        //is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Unsigned(f_64))));
+                        //is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
+                        //, Reg32::Unsigned(*f))));
+                        //is.push(Instr::Fld(Arg32::Reg(Reg::R15)));
+                        //is.push(Instr::Fstp(Arg32::Reg(Reg::R15)));
+                        //is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                        is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Unsigned(*f as u64))));
                         //is.push(Instr::Cvtsi2ss(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Rax))));
                         //is.push(Instr::Movd(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::Xmm0))));
                         //is.push(Instr::Cvttss2si(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::Xmm0))));
@@ -909,6 +918,45 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.append(&mut compile_prim(op));
                     is.append(&mut check_overflow());
                 }
+                Prim::FSub | Prim::FAdd | Prim::FMul => {
+                    let fstimm = exp.get(0).unwrap();
+                    is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
+                    is.push(Instr::Comment("Fadd_sub_mul".to_owned()));
+                    let sndimm = exp.get(1).unwrap();
+                    is.append(&mut check_ari_float());
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
+                    is.push(Instr::Sar(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(1))));
+                    let arg64 = {
+                        match sndimm {
+                            ImmExp::Num(n) => Arg64::Signed(TryFrom::try_from(*n << 1).unwrap()),
+                            ImmExp::Bool(b) => if *b {
+                                Arg64::Unsigned(SNAKE_TRU)
+                            }else{
+                                Arg64::Unsigned(SNAKE_FLS)
+                            }
+                            ImmExp::Var(name) => {
+                                let offset = match env_get::<u32>(env, name) {
+                                    Some(n) => n,
+                                    None => {
+                                        println!("e: {:?}", e);
+                                        panic!("{} not found", name)
+                                    }
+                                };
+                                Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
+                        }
+                    };
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
+                    is.append(&mut check_ari_float());
+                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
+                    , Reg32::Reg(Reg::Rax))));
+                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
+                    , Reg32::Reg(Reg::R10))));
+                    
+
+                }
+                
                 Prim::Add | Prim::Sub | Prim::Mul => {
                     let fstimm = exp.get(0).unwrap();
                     is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
