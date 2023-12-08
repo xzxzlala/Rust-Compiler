@@ -17,6 +17,9 @@ pub enum Reg {
     R14,
     R15,
     Xmm0,
+    Xmm1,
+    Xmm2,
+    Xmm3,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -81,6 +84,7 @@ pub enum JmpArg {
 pub enum Instr {
     Mov(MovArgs),
     Movss(MovArgs),
+    Movaps(MovArgs),
     Movd(MovArgs),
     Movsxd(MovArgs),
     RelativeLoadAddress(Reg, String),
@@ -98,12 +102,17 @@ pub enum Instr {
     Test(BinArgs),
     Cvtsi2ss(BinArgs),
     Cvttss2si(BinArgs),
+    Addps(BinArgs),
+    Subps(BinArgs),
+    Mulps(BinArgs),
+    Comiss(BinArgs),
 
+    //Setg(Reg32),
     Fld(Arg32),
     Fild(Arg32),
     Fstp(Arg32),
     Push(Arg32),
-    Pushf(u32),
+    //Pushf(u32),
     Pop(Arg32),
 
     Comment(String),
@@ -145,6 +154,9 @@ pub fn reg_to_string(r: Reg) -> String {
         Reg::R14 => String::from("r14"),
         Reg::R15 => String::from("r15"),
         Reg::Xmm0 => String::from("xmm0"),
+        Reg::Xmm1 => String::from("xmm1"),
+        Reg::Xmm2 => String::from("xmm2"),
+        Reg::Xmm3 => String::from("xmm3"),
     }
 }
 
@@ -169,7 +181,13 @@ pub fn mem_ref_to_string(m: MemRef) -> String {
         offset_to_string(m.offset)
     )
 }
-
+pub fn d_mem_ref_to_string(m: MemRef) -> String {
+    format!(
+        "DWORD [{} + {}]",
+        reg_to_string(m.reg),
+        offset_to_string(m.offset)
+    )
+}
 fn reg32_to_string(r_or_i: Reg32) -> String {
     match r_or_i {
         Reg32::Reg(r) => reg_to_string(r),
@@ -207,7 +225,25 @@ fn mov_args_to_string(args: &MovArgs) -> String {
         }
     }
 }
-
+fn movss_args_to_string(args: &MovArgs) -> String {
+    match args {
+        MovArgs::ToReg(r, arg) => {
+            format!("{}, {}", reg_to_string(*r), movss_arg64_to_string(arg))
+        }
+        MovArgs::ToMem(mem, arg) => {
+            format!("{}, {}", d_mem_ref_to_string(*mem), reg32_to_string(*arg))
+        }
+    }
+}
+fn movss_arg64_to_string(arg: &Arg64) -> String {
+    match arg {
+        Arg64::Reg(r) => reg_to_string(*r),
+        Arg64::Signed(i) => i.to_string(),
+        Arg64::Unsigned(u) => format!("0x{:016x}", u),
+        Arg64::Mem(m) => d_mem_ref_to_string(*m),
+        Arg64::Label(l) => l.clone(),
+    }
+}
 fn bin_args_to_string(args: BinArgs) -> String {
     match args {
         BinArgs::ToReg(r, arg) => {
@@ -228,9 +264,20 @@ fn jmp_arg_to_string(arg: &JmpArg) -> String {
 
 fn instr_to_string(i: &Instr) -> String {
     match i {
-        Instr::Pushf(arg) => {
-            let f:f32 = unsafe { std::mem::transmute(*arg)};
-            format!("        mov QWORD [r15 + 0], {}", f)
+        Instr::Movaps(args) => {
+            format!("        movaps {}", mov_args_to_string(args))
+        }
+        Instr::Comiss(args) => {
+            format!("        comiss {}", bin_args_to_string(*args))
+        }
+        Instr::Addps(args) => {
+            format!("        addps {}", bin_args_to_string(*args))
+        }
+        Instr::Subps(args) => {
+            format!("        subps {}", bin_args_to_string(*args))
+        }
+        Instr::Mulps(args) => {
+            format!("        mulps {}", bin_args_to_string(*args))
         }
         Instr::Movsxd(args) => {
             format!("        movsxd {}", mov_args_to_string(args))
@@ -245,7 +292,7 @@ fn instr_to_string(i: &Instr) -> String {
             format!("        cvtsi2ss {}", bin_args_to_string(*args))
         }
         Instr::Movss(args) => {
-            format!("        movss {}", mov_args_to_string(args))
+            format!("        movss {}", movss_args_to_string(args))
         }
         Instr::Fld(arg) => {
             format!("        fld dword [{}]", arg32_to_string(*arg))

@@ -1,0 +1,5 @@
+def float_frac(n): 
+if n <= 0 : 1
+else: n * float_frac(n - 1) 
+in
+float_frac(4) >= 13

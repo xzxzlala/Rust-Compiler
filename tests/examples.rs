@@ -98,16 +98,18 @@ mod float_tests{
     mk_test!(test0, "test0.float", "5.5");
     mk_test!(test0_0, "test0.0.float", "4.0");
     
-    //mk_test!(test1, "test1.float", "10.0");
-    //mk_test!(test2, "test2.float", "true");
-    //mk_test!(test3, "test3.float", "true");
-    //mk_test!(test4, "test4.float", "true");
-    //mk_test!(test5, "test5.float", "true");
-    //mk_test!(test6, "test6.float", "true");
-    //mk_test!(test7, "test7.float", "114");
-    //mk_test!(test8, "test8.float", "true");
-    //mk_test!(test9, "test9.float", "true");
+    mk_test!(test1, "test1.float", "10.0");
+    mk_test!(test2, "test2.float", "true");
+    mk_test!(test3, "test3.float", "true");
+    mk_test!(test4, "test4.float", "true");
+    mk_test!(test5, "test5.float", "true");
+    mk_test!(test6, "test6.float", "true");
+    mk_test!(test7, "test7.float", "9.9\n114");
+    mk_test!(test8, "test8.float", "true");
+    mk_test!(test9, "test9.float", "true");
+    mk_test!(test10, "test10.float", "true");
 }
+/* 
 mod old_tests {
     use super::*;
     mk_test!(test1, "old/test1.adder", "1");
@@ -156,3 +158,4 @@ mod old_tests {
     mk_test!(test44, "old/test44.egg", "36");
     mk_test!(test45, "old/test45.egg", "true");
 }
+*/

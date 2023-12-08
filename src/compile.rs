@@ -1092,6 +1092,14 @@ error_wrong_arity:
         mov RSI, R10
         mov RDI, 11
         call snake_error
+error_fari_not_float:
+        mov RSI, R10
+        mov RDI, 12
+        call snake_error
+error_fcom_not_float:
+        mov RSI, R10
+        mov RDI, 13
+        call snake_error
 ",
         instrs_to_string(&is)
     ))

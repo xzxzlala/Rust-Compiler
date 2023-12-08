@@ -670,10 +670,17 @@ fn check_ari_float() -> Vec<Instr> {
     is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
     is.push(Instr::Xor(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(5))));
     is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(7))));
-    is.push(Instr::Jnz(JmpArg::Label(format!("error_index_into_nonarray"))));
+    is.push(Instr::Jnz(JmpArg::Label(format!("error_fari_not_float"))));
     is
 }
-
+fn check_com_float() -> Vec<Instr> {
+    let mut is = vec![];
+    is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
+    is.push(Instr::Xor(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(5))));
+    is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(7))));
+    is.push(Instr::Jnz(JmpArg::Label(format!("error_fcom_not_float"))));
+    is
+}
 fn check_index_into_array() -> Vec<Instr> {
     let mut is = vec![];
     is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
@@ -722,6 +729,12 @@ fn check_overflow() -> Vec<Instr> {
 }
 fn compile_prim(op: &Prim) -> Vec<Instr>{
     match op {
+        Prim::FGt | Prim::FLe =>{
+            vec![Instr::Subps(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Xmm1)))]
+        }
+        Prim::FGe | Prim::FLt =>{
+            vec![Instr::Subps(BinArgs::ToReg(Reg::Xmm1, Arg32::Reg(Reg::Xmm0))), xmm0_equal_xmm1()]
+        }
         Prim::Add1 => vec![Instr::Add(BinArgs::ToReg(Reg::Rax, Arg32::Signed(2)))],
         Prim::Sub1 => vec![Instr::Sub(BinArgs::ToReg(Reg::Rax, Arg32::Signed(2)))],
         Prim::Add => vec![Instr::Add(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10)))],
@@ -731,8 +744,14 @@ fn compile_prim(op: &Prim) -> Vec<Instr>{
         Prim::Or => vec![Instr::Or(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10)))],
         Prim::Gt | Prim::Le => vec![Instr::Sub(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10)))],
         Prim::Lt | Prim::Ge => vec![Instr::Sub(BinArgs::ToReg(Reg::R10, Arg32::Reg(Reg::Rax))), rax_equal_r10()],
+        Prim::FAdd => vec![Instr::Addps(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Xmm1)))],
+        Prim::FSub => vec![Instr::Subps(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Xmm1)))],
+        Prim::FMul => vec![Instr::Mulps(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Xmm1)))],
         _ => panic!("compile_prim1 called with non-unary prim"),
     }
+}
+fn xmm0_equal_xmm1()-> Instr{
+    Instr::Movaps(MovArgs::ToReg(Reg::Xmm0, Arg64::Reg(Reg::Xmm1)))
 }
 fn rax_equal_r10()-> Instr{
     Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::R10)))
@@ -740,6 +759,7 @@ fn rax_equal_r10()-> Instr{
 fn need_flip(op: &Prim)->Vec<Instr>{
     let mut is = vec![];
     match op{
+        Prim::FGe | Prim::FLe |
         Prim::IsNum | Prim::Ge | Prim::Le | Prim::Neq => {
             is.append(&mut rax_flip());
             is
@@ -755,111 +775,6 @@ fn rax_flip()->Vec<Instr>{
     is
 
 }
-// fn print_imm_exp(e: &ImmExp<>) -> () {
-//     match e {
-//         ImmExp::Num(n) => print!("{}", n),
-//         ImmExp::Bool(b) => print!("{}", b),
-//         ImmExp::Var(name) => print!("{}", name),
-//     }
-// }
-// fn op_to_string (op: &Prim) -> String {
-//     match op {
-//         Prim::Add1 => "+1".to_owned(),
-//         Prim::Sub1 => "-1".to_owned(),
-//         Prim::Add => "+".to_owned(),
-//         Prim::Sub => "-".to_owned(),
-//         Prim::Mul => "*".to_owned(),
-//         Prim::And => "and".to_owned(),
-//         Prim::Or => "or".to_owned(),
-//         Prim::Not => "not".to_owned(),
-//         Prim::Gt => ">".to_owned(),
-//         Prim::Lt => "<".to_owned(),
-//         Prim::Ge => ">=".to_owned(),
-//         Prim::Le => "<=".to_owned(),
-//         Prim::Eq => "==".to_owned(),
-//         Prim::Neq => "!=".to_owned(),
-//         Prim::IsNum => "number?".to_owned(),
-//         Prim::IsBool => "boolean?".to_owned(),
-//         Prim::Print => "print".to_owned(),
-//         Prim::IsFun => "function?".to_owned(),
-//         Prim::IsArray => "array?".to_owned(),
-//         Prim::ArrayGet => "array-get".to_owned(),
-//         Prim::ArraySet => "array-set".to_owned(),
-//         Prim::Length => "length".to_owned(),
-//         Prim::GetCode => "get-code".to_owned(),
-//         Prim::GetEnv => "get-env".to_owned(),
-//         Prim::CheckArityAndUntag(_) => "check-arity-and-untag".to_owned(),
-//         Prim::MakeArray => "make-array".to_owned(),
-//     }
-// }
-// pub fn print_seq_exp<Ann>(e: &SeqExp<Ann>) -> () {
-//     match e {
-//         SeqExp::Imm(imm_exp, _) => print_imm_exp(imm_exp),
-//         SeqExp::Prim(op, exp, _) =>{
-//             print!("({}", op_to_string(op));
-//             for e in exp{
-//                 print!(" ");
-//                 print_imm_exp(e);
-//             }
-//             print!(")");
-//         }
-//         SeqExp::Let {var, bound_exp, body, ..} => {
-//             print!("(let ([{} ", var);
-//             print_seq_exp(bound_exp);
-//             print!("]) in \n");
-//             print_seq_exp(body);
-//             print!(")");
-//         }
-//         SeqExp::If {cond, thn, els, ..} =>{
-//             print!("(if ");
-//             print_imm_exp(cond);
-//             print!(" ");
-//             print_seq_exp(thn);
-//             print!(" ");
-//             print_seq_exp(els);
-//             print!(")");
-//         }
-//         SeqExp::FunDefs { decls, body, .. } => {
-//             print!("(letrec (");
-//             for decl in decls{
-//                 print!("({} (", decl.name);
-//                 for arg in &decl.parameters{
-//                     print!("{} ", arg);
-//                 }
-//                 print!(") -> ");
-//                 print_seq_exp(&decl.body);
-//                 print!(") ");
-//             }
-//             print!(") in \n");
-//             print_seq_exp(body);
-//             print!(")");
-//         }
-//         SeqExp::ExternalCall { fun, args, .. } => {
-//             print!("(external-call {:?} ", fun);
-//             for arg in args{
-//                 print_imm_exp(arg);
-//                 print!(" ");
-//             }
-//             print!(")");
-//         }
-//         SeqExp::InternalTailCall(name, args, ..) => {
-//             print!("(tail-call {} ", name);
-//             for arg in args{
-//                 print_imm_exp(arg);
-//                 print!(" ");
-//             }
-//             print!(")");
-//         }
-//         SeqExp::MakeClosure { arity, label, env, .. } => {
-//             print!("(make-closure {} {} {:?}", arity, label, print_imm_exp(env));
-//         }
-//         SeqExp::Semicolon { e1, e2, .. } => {
-//             print_seq_exp(e1);
-//             print!(";\n");
-//             print_seq_exp(e2);
-//         }
-//     }
-// }
 fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_def: bool, last: &mut Vec<Instr>) -> Vec<Instr>{
     let mut is = vec![];
     match e {
@@ -873,23 +788,7 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                         Arg64::Unsigned(SNAKE_FLS)
                     }
                     ImmExp::Float(f) => {
-                        //fild f [r15]
-                        //r15++
-                        //mov rax, [r15-8]
-                        //rax += 5
-                        println!("f: {}", f);
-                        let f_f32: f32 = unsafe { std::mem::transmute(*f)};
-                        println!("f_f32: {}", f_f32);
-                        //is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
-                        //, Reg32::Unsigned(*f))));
-                        //is.push(Instr::Fld(Arg32::Reg(Reg::R15)));
-                        //is.push(Instr::Fstp(Arg32::Reg(Reg::R15)));
-                        //is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
                         is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Unsigned(*f as u64))));
-                        //is.push(Instr::Cvtsi2ss(BinArgs::ToReg(Reg::Xmm0, Arg32::Reg(Reg::Rax))));
-                        //is.push(Instr::Movd(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::Xmm0))));
-                        //is.push(Instr::Cvttss2si(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::Xmm0))));
-                        //is.push(Instr::Movsxd(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::Rax))));
                         is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
                         is.push(Instr::Add(BinArgs::ToReg(Reg::Rax, Arg32::Signed(5))));
                         Arg64::Reg(Reg::Rax)
@@ -925,7 +824,7 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     let sndimm = exp.get(1).unwrap();
                     is.append(&mut check_ari_float());
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
-                    is.push(Instr::Sar(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(1))));
+                    is.push(Instr::Sar(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(32))));
                     let arg64 = {
                         match sndimm {
                             ImmExp::Num(n) => Arg64::Signed(TryFrom::try_from(*n << 1).unwrap()),
@@ -949,14 +848,19 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     };
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
                     is.append(&mut check_ari_float());
-                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
-                    , Reg32::Reg(Reg::Rax))));
+                    is.push(Instr::Sar(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
                     is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
                     , Reg32::Reg(Reg::R10))));
-                    
-
+                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }
+                    , Reg32::Reg(Reg::Rax))));
+                    is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm0, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                    is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm1, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }))));
+                    is.append(&mut compile_prim(op));
+                    is.push(Instr::Movss(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }, Reg32::Reg(Reg::Xmm0))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
+                    is.push(Instr::Add(BinArgs::ToReg(Reg::Rax, Arg32::Signed(5))));
                 }
-                
                 Prim::Add | Prim::Sub | Prim::Mul => {
                     let fstimm = exp.get(0).unwrap();
                     is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
@@ -1081,6 +985,38 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Call(JmpArg::Label("print_snake_val".to_owned())));
                     is.push(Instr::Add(BinArgs::ToReg(Reg::Rsp, Arg32::Signed(space_needed(env)))));
                 }
+                Prim::IsFloat =>{
+                    let fstimm = exp.get(0).unwrap();
+                    is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
+                    is.push(Instr::Comment("isfloat".to_owned()));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(63))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Shr(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Or(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Reg(Reg::Rax))));
+                    //r9 = ...xx1
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(62))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R8, Arg64::Unsigned(BOOL_MASK))));
+                    is.push(Instr::Xor(BinArgs::ToReg(Reg::R10, Arg32::Reg(Reg::R8))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Shr(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Or(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10))));
+                    is.push(Instr::And(BinArgs::ToReg(Reg::R9, Arg32::Reg(Reg::Rax))));
+                    //r9 = ...x11
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::R10, Arg32::Unsigned(61))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R8, Arg64::Unsigned(BOOL_MASK))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Shr(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(1))));
+                    is.push(Instr::Or(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R10))));
+                    is.push(Instr::And(BinArgs::ToReg(Reg::R9, Arg32::Reg(Reg::Rax))));
+                    //r9 = ...111
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Unsigned(TAG_MASK))));
+                    is.push(Instr::Or(BinArgs::ToReg(Reg::R9, Arg32::Reg(Reg::R10))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::R9))));
+                }
                 Prim::IsBool => {
                     let fstimm = exp.get(0).unwrap();
                     is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
@@ -1187,6 +1123,54 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Unsigned(TAG_MASK))));
                     is.push(Instr::Or(BinArgs::ToReg(Reg::R9, Arg32::Reg(Reg::R10))));
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Reg(Reg::R9))));
+                }
+                Prim::FGt | Prim::FGe | Prim::FLe | Prim::FLt => {
+                    let fstimm = exp.get(0).unwrap();
+                    is.extend(compile_to_instrs_helper(&SeqExp::Imm(fstimm.clone(), *ann), env, false, last));
+                    is.push(Instr::Comment("fgt_flt_fge_fle".to_owned()));
+                    let sndimm = exp.get(1).unwrap();
+                    is.append(&mut check_com_float());
+                    is.push(Instr::Sar(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R10, Arg64::Reg(Reg::Rax))));
+                    let arg64 = {
+                        match sndimm {
+                            ImmExp::Num(n) => Arg64::Signed(TryFrom::try_from(*n << 1).unwrap()),
+                            ImmExp::Bool(b) => if *b {
+                                Arg64::Unsigned(SNAKE_TRU)
+                            }else{
+                                Arg64::Unsigned(SNAKE_FLS)
+                            }
+                            ImmExp::Var(name) => {
+                                let offset = match env_get::<u32>(env, name) {
+                                    Some(n) => n,
+                                    None => {
+                                        println!("e: {:?}", e);
+                                        panic!("{} not found", name)
+                                    }
+                                };
+                                Arg64::Mem(MemRef{reg:Reg::Rsp, offset:Offset::Constant(offset)})
+                            },
+                            _ => panic!("compile_prim2 called with non-binary prim"),
+                        }
+                    };
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, arg64)));
+                    is.append(&mut check_com_float());
+                    is.push(Instr::Sar(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
+                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }
+                    , Reg32::Reg(Reg::Rax))));
+                    is.push(Instr::Mov(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }
+                    , Reg32::Reg(Reg::R10))));
+                    is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm0, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                    is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm1, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }))));
+                    is.append(&mut compile_prim(op));
+                    is.push(Instr::Movss(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }, Reg32::Reg(Reg::Xmm0))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
+                    is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R11, Arg64::Unsigned(BOOL_MASK))));
+                    is.push(Instr::And(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R11))));
+                    is.push(Instr::Mov(MovArgs::ToReg(Reg::R11, Arg64::Unsigned(TAG_MASK))));
+                    is.push(Instr::Or(BinArgs::ToReg(Reg::Rax, Arg32::Reg(Reg::R11))));
+                    is.append(&mut need_flip(op));
                 }
                 Prim::Gt | Prim::Lt | Prim::Ge | Prim::Le => {
                     let fstimm = exp.get(0).unwrap();
@@ -1317,7 +1301,7 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef{reg:Reg::Rax, 
                         offset:Offset::Constant(16)}))));
                 },
-                _ => panic!("not implemented")
+            
             }
         },
         SeqExp::Let { var, bound_exp, body, .. } => {

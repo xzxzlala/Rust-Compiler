@@ -1,5 +1,5 @@
 def float_frac(n): 
-if n <= 0.0 : 1.0
-else: n * float_frac(n -. 1) 
+if n <=. 0.0 : 1.0
+else: n *. float_frac(n -. 1.0) 
 in
-float_frac(3.7) >= 11.88
+float_frac(3.7) >=. 11.88

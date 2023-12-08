@@ -18,6 +18,8 @@ static INDEX_INTO_NONARRAY: ErrorCode = 8;
 static LENGTH_INTO_NONARRAY: ErrorCode = 9;
 static Not_CLOSURE: ErrorCode = 10;
 static ARITY_MISMATCH: ErrorCode = 11;
+static FARI_EXP_FLOAT: ErrorCode = 12;
+static FCOM_EXP_FLOAT: ErrorCode = 13;
 
 #[repr(C)]
 struct SnakeArray {
@@ -83,10 +85,13 @@ fn sprint_snake_val(x: SnakeVal) -> String {
     } else if (x.0 & TAG_MASK == 1) && (x.0 & 0x02 == 0) { // it's a float
         let a: u32 = (x.0 >> 32 as u32).try_into().unwrap();
         let f: f32 = unsafe { std::mem::transmute(a) };
-        //println!("f is {}", f);
-        format!("{}", f)
-    }
-    else{
+        let formatted = if f.fract() == 0.0 {
+            format!("{}.0", f)
+        } else {
+            format!("{}", f)
+        };
+        format!("{}", formatted)
+    } else{
         format!("Invalid snake value 0x{:x}", x.0)
     }
 }
@@ -125,7 +130,12 @@ extern "sysv64" fn snake_error(err_code: u64, v: SnakeVal) {
         eprintln!("called a non-function, but got {}", sprint_snake_val(v));
     } else if err_code == ARITY_MISMATCH{
         eprintln!("wrong number of arguments, but got {}", sprint_snake_val(v));
-    } else {
+    } else if err_code == FARI_EXP_FLOAT{
+        eprintln!("arithmetic expected a float, but got {}", sprint_snake_val(v));
+    } else if err_code == FCOM_EXP_FLOAT{
+        eprintln!("comparison expected a float, but got {}", sprint_snake_val(v));
+    } else
+    {
         eprintln!("unknown error code {}", err_code);
     }
     std::process::exit(1);
