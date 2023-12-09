@@ -110,6 +110,8 @@ mod float_tests{
     mk_test!(test10, "test10.float", "inf");
     mk_test!(test11, "test11.float", "20000000000000000000000000000000000000.0");
     mk_test!(test12, "test12.float", "inf");
+    mk_test!(test13, "test13.float", "NaN");
+    mk_test!(test14, "test14.float", "0.0");
 }
 
 mod old_tests {

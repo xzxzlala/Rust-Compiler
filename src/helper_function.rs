@@ -679,7 +679,7 @@ fn check_overflow_float() -> Vec<Instr> {
     let mut is = vec![];
     is.push(Instr::Stmxcsr(Arg32::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) })));
     is.push(Instr::Mov(MovArgs::ToReg(Reg::R9, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
-    is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(0x8000))));
+    is.push(Instr::Test(BinArgs::ToReg(Reg::R9, Arg32::Unsigned(0x008))));
     is.push(Instr::Jnz(JmpArg::Label(format!("error_foverflow"))));
     is
 }
@@ -866,7 +866,7 @@ fn compile_to_instrs_helper(e: &SeqExp<u32>, env: &mut Vec<(String, i32)>, is_de
                     is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm0, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
                     is.push(Instr::Movss(MovArgs::ToReg(Reg::Xmm1, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(8) }))));
                     is.append(&mut compile_prim(op));
-                    is.append(&mut check_overflow_float());
+                    //is.append(&mut check_overflow_float());
                     is.push(Instr::Movss(MovArgs::ToMem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }, Reg32::Reg(Reg::Xmm0))));
                     is.push(Instr::Mov(MovArgs::ToReg(Reg::Rax, Arg64::Mem(MemRef { reg: Reg::R15, offset: Offset::Constant(0) }))));
                     is.push(Instr::Shl(BinArgs::ToReg(Reg::Rax, Arg32::Unsigned(32))));
